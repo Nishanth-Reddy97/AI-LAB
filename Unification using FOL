@@ -1,0 +1,65 @@
+def is_variable(term):
+    return isinstance(term, str) and term.islower()
+
+def parse_expr(expr_str):
+    # Example input: Eats(x,Apple) => ('Eats', 'x', 'Apple')
+    expr_str = expr_str.strip()
+    pred_start = expr_str.index('(')
+    pred_end = expr_str.index(')')
+    predicate = expr_str[:pred_start]
+    args = expr_str[pred_start+1:pred_end].split(',')
+    return tuple([predicate] + [arg.strip() for arg in args])
+
+def unify(expr1, expr2, substitutions=None):
+    if substitutions is None:
+        substitutions = {}
+
+    if expr1 == expr2:
+        return substitutions
+
+    if is_variable(expr1):
+        return unify_var(expr1, expr2, substitutions)
+
+    if is_variable(expr2):
+        return unify_var(expr2, expr1, substitutions)
+
+    if isinstance(expr1, tuple) and isinstance(expr2, tuple):
+        if expr1[0] != expr2[0] or len(expr1) != len(expr2):
+            raise Exception("Cannot unify: predicate symbols or arity mismatch")
+        for a1, a2 in zip(expr1[1:], expr2[1:]):
+            substitutions = unify(a1, a2, substitutions)
+        return substitutions
+
+    raise Exception("Cannot unify: structure mismatch")
+
+def unify_var(var, expr, substitutions):
+    if var in substitutions:
+        return unify(substitutions[var], expr, substitutions)
+    if expr in substitutions:
+        return unify(var, substitutions[expr], substitutions)
+    if occurs_check(var, expr, substitutions):
+        raise Exception(f"Occurs check fails for {var} in {expr}")
+    substitutions[var] = expr
+    return substitutions
+
+def occurs_check(var, expr, substitutions):
+    if var == expr:
+        return True
+    if is_variable(expr) and expr in substitutions:
+        return occurs_check(var, substitutions[expr], substitutions)
+    if isinstance(expr, tuple):
+        return any(occurs_check(var, subexpr, substitutions) for subexpr in expr[1:])
+    return False
+
+# Main interaction
+if __name__ == "__main__":
+    exprA_str = input("Enter first expression (e.g., Eats(x,Apple)): ")
+    exprB_str = input("Enter second expression (e.g., Eats(Riya,y)): ")
+    try:
+        exprA = parse_expr(exprA_str)
+        exprB = parse_expr(exprB_str)
+        result = unify(exprA, exprB)
+        print("Unification successful. Substitutions:")
+        print(result)
+    except Exception as e:
+        print("Unification failed:", e)
