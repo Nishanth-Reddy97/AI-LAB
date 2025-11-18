@@ -1,0 +1,131 @@
+# Alpha–Beta Pruning for Problem 2 (Batch 2)
+
+class Node:
+    def __init__(self, name, children=None, value=None):
+        self.name = name
+        self.children = children or []
+        self.value = value
+
+
+# ---- TREE FOR PROBLEM-2 ----
+
+A = Node("A", [])
+B = Node("B", [])
+C = Node("C", [])
+
+D = Node("D", [])
+E = Node("E", [])
+F = Node("F", [])
+G = Node("G", [])
+
+# Leaf nodes (with given values)
+H = Node("H", value=41)
+I = Node("I", value=5)
+J = Node("J", value=12)
+K = Node("K", value=90)
+
+L = Node("L", value=80)
+M = Node("M", value=20)
+N = Node("N", value=34)
+O = Node("O", value=80)
+P = Node("P", value=36)
+Q = Node("Q", value=35)
+R = Node("R", value=50)
+S = Node("S", value=36)
+T = Node("T", value=25)
+U = Node("U", value=3)
+
+# But from the screenshot, correct children are:
+D.children = [H, I]
+E.children = [J, K]
+
+F.children = [L, M]
+G.children = [N, O]
+
+# Real leaf order under C (as seen in image)
+C1 = Node("L", value=80)
+C2 = Node("M", value=20)
+C3 = Node("N", value=34)
+C4 = Node("O", value=80)
+C5 = Node("P", value=36)
+C6 = Node("Q", value=35)
+C7 = Node("R", value=50)
+C8 = Node("S", value=36)
+C9 = Node("T", value=25)
+C10 = Node("U", value=3)
+
+# But image shows C splits into F and G only, so use:
+F.children = [C1, C2]       # L, M
+G.children = [C3, C4, C5, C6, C7, C8, C9, C10]
+
+# Main structure
+B.children = [D, E]
+C.children = [F, G]
+A.children = [B, C]
+
+
+# Global logs
+pruned = []
+visited = []
+optimal_path = []
+
+
+def alphabeta(node, depth, alpha, beta, maximizingPlayer, path):
+    global pruned, visited, optimal_path
+
+    # If leaf: return its value
+    if node.value is not None:
+        visited.append((node.name, node.value))
+        return node.value
+
+    if maximizingPlayer:
+        value = float('-inf')
+        for child in node.children:
+            new_path = path + [child.name]
+            val = alphabeta(child, depth + 1, alpha, beta, False, new_path)
+
+            if val > value:
+                value = val
+                if depth == 0:  # Save path at root
+                    optimal_path = new_path
+
+            alpha = max(alpha, value)
+
+            if beta <= alpha:
+                pruned.append(f"Pruned children of {node.name} after {child.name}")
+                break
+
+        return value
+
+    else:
+        value = float('inf')
+        for child in node.children:
+            new_path = path + [child.name]
+            val = alphabeta(child, depth + 1, alpha, beta, True, new_path)
+
+            if val < value:
+                value = val
+
+            beta = min(beta, value)
+
+            if beta <= alpha:
+                pruned.append(f"Pruned children of {node.name} after {child.name}")
+                break
+
+        return value
+
+
+# ---- RUN SEARCH ----
+result = alphabeta(A, 0, float('-inf'), float('inf'), True, ["A"])
+
+print("\n=== RESULT ===")
+print("Root value:", result)
+print("Optimal path:", " → ".join(optimal_path))
+
+print("\nVisited nodes (in order):")
+for v in visited:
+    print(f"{v[0]} = {v[1]}")
+
+print("\nPruned branches:")
+for p in pruned:
+    print(p)
